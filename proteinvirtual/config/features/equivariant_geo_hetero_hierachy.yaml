@@ -1,0 +1,52 @@
+_target_: proteinvirtual.features.factory.VirtualProteinFeaturiser
+representation: CA
+virtual_nodes:
+  secondary:
+    n_nodes: 10
+    positions:
+      type: fps
+      basis: real
+  tertiary:
+    n_nodes: 5
+    positions:
+      type: fps
+      basis: secondary
+  root:
+    n_nodes: 1
+    positions:
+      type: fps
+      basis: tertiary
+edge_types: # Custom types for different edges
+  r_to_r:
+    paris: [[real, real]]
+    strategies:
+      - knn_10
+      - eps_8
+  rv_mutual:
+    pairs: [[real, virtual]]
+    bidrectional: True # x-y implies y-x, duplicate edges removed
+    strategies:
+      - knn_16
+  v_to_v_upwards: 
+    pairs: [[secondary, tertiary], [tertiary, root]]  # Pairs of node types to connect, efficient shorthand for From and To
+    strategies:
+      - full
+  v_to_v_downwards:
+    pairs: [[tertiary, secondary], [root, tertiary]]
+    strategies:
+      - full
+scalar_node_features:
+  real:
+    - amino_acid_one_hot
+  _notreal_:
+    - random_16
+vector_node_features: 
+  _all_: ["orientation"] # Efficient shorthand for all node types 
+scalar_edge_features:
+  _all_:
+    - edge_distance
+    - edge_type
+    - node_features
+    - sequence_distance
+vector_edge_features: 
+  _all_: ["edge_vectors"]
