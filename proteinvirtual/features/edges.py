@@ -1,8 +1,10 @@
+from typing import *
+
 import logging
 import torch
-from torch_geometric.nn.pool import knn
+from torch_geometric.nn.pool import knn, radius
 from torch_geometric.data import HeteroData
-import numpy as np
+from proteinworkshop.features.edges import sequence_edges
 
 
 
@@ -41,13 +43,62 @@ def compute_knn(
     k: int = 5,
     **kwargs
 ):
-    assert from_pos.shape[1]==3 and to_pos.shape[1]==3, "Expecting poss tensor of shape (*, 3)"
+    assert from_pos.shape[1]==3 and to_pos.shape[1]==3, "Expecting pos tensor of shape (*, 3)"
     logging.debug(f"compute_knn: For {from_pos.shape[0]} -> {to_pos.shape[0]} nodes, k={k}, kwargs={kwargs}")
 
-    return knn(to_pos, from_pos, k=k,
-               batch_x=batch_x, batch_y=batch_y, **kwargs)
+    return knn(x=to_pos, 
+               y=from_pos, 
+               k=k,
+               batch_x=batch_x, 
+               batch_y=batch_y, 
+               **kwargs)
 
 
-def add_edges(strategies, n_from, edge_name, n_to, data: HeteroData):
-    # TODO: Implement
-    pass
+def compute_radius(
+    from_pos: torch.Tensor,
+    to_pos: torch.Tensor,
+    radius: float = 1.0,
+    batch_x: torch.Tensor = None,
+    batch_y: torch.Tensor = None,
+    **kwargs
+):
+    assert from_pos.shape[1]==3 and to_pos.shape[1]==3, "Expecting pos tensor of shape (*, 3)"
+    logging.debug(f"compute_radius: For {from_pos.shape[0]} -> {to_pos.shape[0]} nodes, radius={radius}, kwargs={kwargs}")
+
+    return radius(x=to_pos, 
+                  y=from_pos, 
+                  r=radius,
+                  batch_x=batch_x, 
+                  batch_y=batch_y, 
+                  **kwargs)
+    
+
+def add_edges(strategies: List[str], n_from, edge_name, n_to, data: HeteroData):
+    edges = []
+    for strat in strategies:
+        strat: str = strat.lower().strip()
+        if strat.startswith("knn"):
+            val = strat.split("_")[1]
+            new_edges = compute_knn(data[n_from].pos, data[n_to].pos, k=int(val))
+        elif strat.startswith("eps"):
+            val = strat.split("_")[1]
+            new_edges = compute_radius(data[n_from].pos, data[n_to].pos, radius=float(val))
+        elif strat in ["full", "fc", "fully_connected"]:
+            new_edges = compute_fully_connect_by_node_type(n_from, n_to, data)
+        elif strat in ["seq_forward", "seq_backward"]:
+            direction = strat.split("_")[1]
+            assert n_from == "real" and edge_name == "r_to_r" and n_to == "real", "Only real to real sequence edges are supported"
+            new_edges = sequence_edges(data["real"], chains=data["real"].chains, direction=direction)
+        else:
+            raise ValueError(f"Edge strategy {strat} not recognised")
+    
+    indxs = torch.cat(
+        [
+            torch.ones_like(e_idx[0, :]) * idx
+            for idx, e_idx in enumerate(edges)
+        ],
+        dim=0,
+    ).unsqueeze(0)
+    
+    data[n_from, edge_name, n_to].edge_index = torch.cat(edges, dim=1)
+    data[n_from, edge_name, n_to].edge_type = indxs
