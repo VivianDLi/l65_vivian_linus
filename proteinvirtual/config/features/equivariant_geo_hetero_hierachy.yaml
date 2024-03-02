@@ -23,7 +23,7 @@ edge_types: # Custom types for different edges
       - knn_10
       - eps_8
   rv_mutual:
-    pairs: [[real, virtual]]
+    pairs: [[real, secondary]]
     bidrectional: True # x-y implies y-x, duplicate edges removed
     strategies:
       - knn_16
@@ -41,7 +41,7 @@ scalar_node_features:
   _notreal_:
     - random_16
 vector_node_features: 
-  _all_: ["orientation"] # Efficient shorthand for all node types 
+  real: ["orientation"]
 scalar_edge_features:
   _all_:
     - edge_distance

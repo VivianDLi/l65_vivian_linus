@@ -29,7 +29,7 @@ scalar_node_features:
     - random_16
 vector_node_features:
   real: ["orientation"]
-  _notreal_: ["orientation"] # Efficient shorthand for all node types 
+  _notreal_: [] # Efficient shorthand for all node types 
 scalar_edge_features:
   _all_:
     - edge_distance

@@ -11,16 +11,16 @@ edge_types: # Custom types for different edges
   r_to_r:
     from: real
     to: real
-    bidrectional: True  # If X linked to Y, then also link Y to X
+    bidrectional: True # If X linked to Y, then also link Y to X
     strategies:
-      - knn_16
+      - seq_forward
   rv_mutual:
-    pairs: [[real, virtual]]
+    pairs: [[real, secondary]]
     bidrectional: True
     strategies:
-      - knn_16
-  v_to_v_upwards: 
-    pairs: [[secondary, tertiary], [tertiary, root]]  # Pairs of node types to connect, efficient shorthand for From and To
+      - full
+  v_to_v_upwards:
+    pairs: [[secondary, tertiary], [tertiary, root]] # Pairs of node types to connect, efficient shorthand for From and To
     strategies:
       - full
   v_to_v_downwards:
@@ -36,8 +36,12 @@ scalar_node_features:
 vector_node_features: {}
 scalar_edge_features:
   r_to_r:
+    - edge_type
+    - random_10
     - edge_distance
-  rv_mutual: 
+    - sequence_distance
+    - pos_emb
+  rv_mutual:
     - random_16
   v_to_v_upwards:
     - random_32

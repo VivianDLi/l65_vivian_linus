@@ -6,23 +6,18 @@ virtual_nodes:
     positions: random
 edge_types: # Custom types for different edges
   r_to_r:
-    from: real
-    to: real
     strategies:
       - knn_16
   v_to_r:
-    from: virtual
-    to: real
+    pairs: [[virtual, real]]
     strategies:
       - full
   r_to_v:
-    from: real
-    to: virtual
+    pairs: [[real, virtual]]
     strategies:
       - full
   v_to_v:
-    from: virtual
-    to: virtual
+    pairs: [[virtual, virtual]]
     strategies:
       - full
 scalar_node_features:
