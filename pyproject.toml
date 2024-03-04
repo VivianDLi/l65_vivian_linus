@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "proteinvirtual"
+version = "0.1.0"
+description = ""
+authors = ["Vivian Li <visavionv@gmail.com>, Linus Leong <linus.leong.yh@gmail.com>"]
+readme = "README.md"
+license = "MIT"
+keywords = ["proteins", "virtual graph", "deep learning"]
+packages = [
+    { include = "proteinvirtual"}
+]
+
+[tool.poetry.dependencies]
+proteinworkshop = "*"
+python = ">=3.9, <=3.11"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.group.test.dependencies]
+pytest = "*"
