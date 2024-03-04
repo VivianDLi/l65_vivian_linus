@@ -11,12 +11,14 @@ edge_types: # Custom types for different edges
   r_to_r:
     from: real
     to: real
-    bidrectional: True # If X linked to Y, then also link Y to X
     strategies:
-      - seq_forward
-  rv_mutual:
+      - knn_16
+  r_to_v:
     pairs: [[real, secondary]]
-    bidrectional: True
+    strategies:
+      - full
+  v_to_r:
+    pairs: [[secondary, real]]
     strategies:
       - full
   v_to_v_upwards:
@@ -31,20 +33,19 @@ scalar_node_features:
   real:
     - amino_acid_one_hot
     - sequence_positional_encoding
+    - alpha
+    - kappa
+    - dihedrals
   _notreal_:
     - random_32
 vector_node_features: {}
 scalar_edge_features:
   r_to_r:
-    - edge_type
-    - random_10
     - edge_distance
-    - sequence_distance
-    - pos_emb
   rv_mutual:
     - random_16
   v_to_v_upwards:
-    - random_32
+    - random_16
   v_to_v_downwards:
-    - random_64
+    - random_16
 vector_edge_features: {}

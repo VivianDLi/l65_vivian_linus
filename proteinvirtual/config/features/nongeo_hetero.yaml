@@ -2,7 +2,7 @@ _target_: proteinvirtual.features.factory.VirtualProteinFeaturiser
 representation: CA
 virtual_nodes:
   virtual:
-    n_nodes: 10
+    n_nodes: 16
     positions: random
 edge_types: # Custom types for different edges
   r_to_r:
@@ -24,8 +24,11 @@ scalar_node_features:
   real:
     - amino_acid_one_hot
     - sequence_positional_encoding
+    - alpha
+    - kappa
+    - dihedrals
   virtual:
-    - random_32
+    - avgreal_knn_16
 vector_node_features: {}
 scalar_edge_features:
   r_to_r:
@@ -35,5 +38,5 @@ scalar_edge_features:
   r_to_v:
     - random_16
   v_to_v:
-    - random_32
+    - random_16
 vector_edge_features: {}
