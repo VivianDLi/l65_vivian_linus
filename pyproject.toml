@@ -12,7 +12,7 @@ packages = [
 
 [tool.poetry.dependencies]
 proteinworkshop = "*"
-python = ">=3.9, <=3.11"
+python = ">=3.9, <3.12"
 
 [build-system]
 requires = ["poetry-core"]
