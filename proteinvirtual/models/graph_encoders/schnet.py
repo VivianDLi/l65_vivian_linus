@@ -8,15 +8,13 @@ from graphein.protein.tensor.data import ProteinBatch
 from jaxtyping import jaxtyped
 from torch_geometric.data import Batch
 from torch_geometric.nn.conv import HeteroConv
-from torch_geometric.nn import Sequential, Linear
+from torch_geometric.nn import Linear
 from torch_geometric.nn.models import SchNet
 from torch_geometric.nn.models.schnet import (
     CFConv,
     ShiftedSoftplus,
 )
 
-from proteinworkshop.models.graph_encoders.gnn import get_gnn_layer
-from proteinworkshop.models.utils import get_activations, get_aggregation
 from proteinworkshop.types import EncoderOutput
 
 import logging
@@ -192,14 +190,14 @@ class HeteroInteractionBlock(torch.nn.Module):
         super().__init__()
         self.edge_list = edge_list
 
-        self.mlp = Sequential(
+        self.mlp = nn.Sequential(
             Linear(num_gaussians, num_filters),
             ShiftedSoftplus(),
             Linear(num_filters, num_filters),
         )
 
         conv_dict = {
-            edge_name: CFConv(
+            tuple(edge_name): CFConv(
                 hidden_channels, hidden_channels, num_filters, self.mlp, cutoff
             )
             for edge_name in edge_list
@@ -221,11 +219,11 @@ class HeteroInteractionBlock(torch.nn.Module):
 
     def forward(
         self,
-        x_dict: Dict[str, nn.Tensor],
-        edge_index_dict: Dict[str, nn.Tensor],
-        edge_weight_dict: Dict[str, nn.Tensor],
-        edge_attr_dict: Dict[str, nn.Tensor],
-    ) -> Dict[str, nn.Tensor]:
+        x_dict: Dict[str, torch.Tensor],
+        edge_index_dict: Dict[str, torch.Tensor],
+        edge_weight_dict: Dict[str, torch.Tensor],
+        edge_attr_dict: Dict[str, torch.Tensor],
+    ) -> Dict[str, torch.Tensor]:
         x_dict = self.conv(
             x_dict,
             edge_index_dict,

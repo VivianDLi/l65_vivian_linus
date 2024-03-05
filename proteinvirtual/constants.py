@@ -31,6 +31,13 @@ if not os.path.exists(PROJECT_PATH / ".env"):
         logger.debug("No env var `DATA_PATH` found. Setting default...")
         DATA_PATH = str(SRC_PATH / "data")
         os.environ["DATA_PATH"] = str(DATA_PATH)
+    if os.environ.get("WORKSHOP_PATH") is not None:
+        logger.debug("Found env var `WORKSHOP_PATH`:.")
+        WORKSHOP_PATH = os.environ.get("WORKSHOP_PATH")
+    else:
+        logger.debug("No env var `WORKSHOP_PATH` found. Setting default...")
+        WORKSHOP_PATH = str(SRC_PATH / "proteinworkshop")
+        os.environ["WORKSHOP_PATH"] = str(WORKSHOP_PATH)
 else:
     import dotenv  # lazy import to avoid dependency on dotenv
 
@@ -41,6 +48,8 @@ else:
 
     WORKSHOP_PATH = os.environ.get("WORKSHOP_PATH")
     """Root path to the proteinworkshop directory."""
+
+WORKSHOP_PATH = pathlib.Path(WORKSHOP_PATH)
 
 logger.info(f"DATA_PATH: {DATA_PATH}")
 logger.info(f"WORKSHOP_PATH: {WORKSHOP_PATH}")

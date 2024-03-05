@@ -10,11 +10,11 @@ from proteinworkshop import register_custom_omegaconf_resolvers
 from proteinvirtual import constants
 
 ENCODERS: List[str] = [
+    "schnet",
+    "schnet_hierarchy",
     "gnn_geo_hetero_hierarchy",
     "gnn_nongeo_hetero_hierarchy",
-    "schnet_hierarchy",
     "gnn_nongeo_hetero",
-    "schnet",
 ]
 
 FEATURES = os.listdir(constants.VIRTUAL_HYDRA_CONFIG_PATH / "features")
@@ -33,9 +33,9 @@ def test_instantiate_encoders():
             constants.VIRTUAL_HYDRA_CONFIG_PATH
             / "features"
             / (
-                "ca_nongeo_hetero_hierarchy.yaml"
-                if "hierarchy" in config_path
-                else "ca_nongeo_hetero.yaml"
+                "nongeo_hetero_hierarchy.yaml"
+                if "hierarchy" in str(config_path)
+                else "nongeo_hetero.yaml"
             )
         )
         cfg.task = omegaconf.OmegaConf.load(
