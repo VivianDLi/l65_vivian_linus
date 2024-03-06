@@ -5,8 +5,8 @@ layer_types: # Custom message passing layers per each hierarchy
   r_to_r:
     pairs: [[real, real]]
     layers: ["GCN"]
-  rv_mutual:
-    pairs: [[real, virtual]]
+  r_to_v:
+    pairs: [[real, secondary]]
     layers: ["GCN"]
   v_to_v_upwards: 
     pairs: [[secondary, tertiary], [tertiary, root]]  # Pairs of node types to connect, efficient shorthand for From and To
@@ -14,6 +14,9 @@ layer_types: # Custom message passing layers per each hierarchy
   v_to_v_downwards:
     pairs: [[tertiary, secondary], [root, tertiary]]
     layers: ["GCN", "GCN"]
+  v_to_r:
+    pairs: [[secondary, real]]
+    layers: ["GCN"]
 activation: relu
 aggr: "sum"
 pool: "mean"

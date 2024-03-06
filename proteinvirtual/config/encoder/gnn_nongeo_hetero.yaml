@@ -5,14 +5,14 @@ layer_types: # Custom message passing layers per each hierarchy
   r_to_r:
     pairs: [[real, real]]
     layers: ["GCN"]
-  v_to_r:
-    pairs: [[virtual, real]]
-    layers: ["GCN"]
   r_to_v:
     pairs: [[real, virtual]]
     layers: ["GCN"]
   v_to_v:
     pairs: [[virtual, virtual]]
+    layers: ["GCN"]
+  v_to_r:
+    pairs: [[virtual, real]]
     layers: ["GCN"]
 activation: relu
 aggr: "sum"

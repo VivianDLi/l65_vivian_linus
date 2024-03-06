@@ -5,10 +5,13 @@ from beartype import beartype as typechecker
 from graphein.protein.tensor.data import ProteinBatch
 from jaxtyping import jaxtyped
 from torch_geometric.data import Batch
-from torch_geometric.nn.conv import MessagePassing, HeteroConv
-from torch_geometric.nn import GCNConv
+from torch_geometric.nn.conv import (
+    MessagePassing,
+    HeteroConv,
+    GraphConv,
+    SAGEConv,
+)
 
-from proteinworkshop.models.graph_encoders.layers.egnn import EGNNLayer
 from proteinworkshop.models.utils import get_aggregation, get_activations
 from proteinworkshop.types import EncoderOutput
 
@@ -20,7 +23,7 @@ def get_gnn_layer(
     emb_dim: Union[int, Tuple[int, int]],
     activation: str = "relu",
     norm: str = "layer",
-    aggr: str = "mean"
+    aggr: str = "mean",
 ) -> MessagePassing:
     """Returns a GNN layer for heterogeneous convolution.
 
@@ -40,11 +43,9 @@ def get_gnn_layer(
     :rtype: MessagePassing
     """
     if layer_name == "GCN":
-        return GCNConv(emb_dim, emb_dim, add_self_loops=False)  # type: ignore
-    elif layer_name == "EGNN":
-        return EGNNLayer(
-            emb_dim, activation, norm, aggr, 0
-        )  # type: ignore
+        return GraphConv(emb_dim, emb_dim, aggr=aggr)  # type: ignore
+    elif layer_name == "SAGE":
+        return SAGEConv(emb_dim, emb_dim, aggr=aggr)
     else:
         raise ValueError(f"Unknown layer: {layer_name}")
 
@@ -91,15 +92,15 @@ class VirtualGNN(nn.Module):
         self.edge_features = edge_features
         self.residual = residual
 
-        self.emb_in = nn.LazyLinear(emb_dim)
-        self.layers = self._build_gnn_encoder()
+        self.embeddings, self.layers = self._build_gnn_encoder()
         self.activation = get_activations(activation)
         self.dropout = nn.Dropout(dropout)
         self.pool = get_aggregation(pool)
 
     def _build_gnn_encoder(self) -> nn.Sequential:
         """Builds a GNN encoder for a hierarchical virtual node model."""
-        # Define separate GNN layer per heter-node type
+        # Define separate GNN layer per heter-node type and find node types
+        node_names = set()
         conv_dict = {}
         for edge_name, layer_config in self.layer_types.items():
             assert not edge_name.startswith(
@@ -126,16 +127,20 @@ class VirtualGNN(nn.Module):
             ), f"Number of layer types must match the number of pairs for edge type {edge_name}"
             for i, (n_from, n_to) in enumerate(pairs):
                 conv_dict[n_from, edge_name, n_to] = get_gnn_layer(
-                    layer_config["layers"][i],
-                    self.emb_dim
+                    layer_config["layers"][i], self.emb_dim
                 )
+                node_names.update([n_from, n_to])
+        # Stack of Embeddings per node type
+        embs = {}
+        for node in node_names:
+            embs[node] = nn.LazyLinear(self.emb_dim)
 
         # Stack of Heterogeneous Conv Layers
         convs = nn.ModuleList()
         for _ in range(self.num_layers):
             convs.append(HeteroConv(conv_dict, aggr=self.aggr))
 
-        return convs
+        return embs, convs
 
     @property
     def required_batch_attributes(self) -> Set[str]:
@@ -168,14 +173,9 @@ class VirtualGNN(nn.Module):
         :rtype: EncoderOutput
         """
         h_dict = {
-            edge_name: self.emb_in(batch.x_dict[edge_name])
-            for edge_name in batch.x_dict
+            node_name: self.embeddings[node_name](batch.x_dict[node_name])
+            for node_name in batch.x_dict
         }
-        if self.pos_features:
-            pos_dict = {
-                edge_name: batch.pos_dict[edge_name]
-                for edge_name in batch.pos_dict
-            }
 
         for layer in self.layers:
             if self.edge_features and self.pos_features:
@@ -187,25 +187,28 @@ class VirtualGNN(nn.Module):
                     edge_attr_dict=batch.edge_attr_dict,
                 )
                 h_update_dict = {
-                    edge_name: self.dropout(self.activation(h_update_dict[edge_name])) for edge_name in h_update_dict
+                    node_name: self.dropout(
+                        self.activation(h_update_dict[node_name])
+                    )
+                    for node_name in h_update_dict
                 }
                 # Update node features (n, d) -> (n, d)
                 h_dict = {
-                    edge_name: (
-                        h_dict[edge_name] + h_update_dict[edge_name]
+                    node_name: (
+                        h_dict[node_name] + h_update_dict[node_name]
                         if self.residual
-                        else h_update_dict[edge_name]
+                        else h_update_dict[node_name]
                     )
-                    for edge_name in h_update_dict
+                    for node_name in h_update_dict
                 }
                 # Update node coordinates (n, 3) -> (n, 3)
                 pos_dict = {
-                    edge_name: (
-                        pos_dict[edge_name] + pos_update_dict[edge_name]
+                    node_name: (
+                        pos_dict[node_name] + pos_update_dict[node_name]
                         if self.residual
-                        else pos_update_dict[edge_name]
+                        else pos_update_dict[node_name]
                     )
-                    for edge_name in pos_update_dict
+                    for node_name in pos_update_dict
                 }
             elif self.edge_features:
                 # Message passing layer
@@ -215,16 +218,19 @@ class VirtualGNN(nn.Module):
                     edge_attr_dict=batch.edge_attr_dict,
                 )
                 h_update_dict = {
-                    edge_name: self.dropout(self.activation(h_update_dict[edge_name])) for edge_name in h_update_dict
+                    node_name: self.dropout(
+                        self.activation(h_update_dict[node_name])
+                    )
+                    for node_name in h_update_dict
                 }
                 # Update node features (n, d) -> (n, d)
                 h_dict = {
-                    edge_name: (
-                        h_dict[edge_name] + h_update_dict[edge_name]
+                    node_name: (
+                        h_dict[node_name] + h_update_dict[node_name]
                         if self.residual
-                        else h_update_dict[edge_name]
+                        else h_update_dict[node_name]
                     )
-                    for edge_name in h_update_dict
+                    for node_name in h_update_dict
                 }
             elif self.pos_features:
                 # Message passing layer
@@ -234,40 +240,46 @@ class VirtualGNN(nn.Module):
                     pos_dict=pos_dict,
                 )
                 h_update_dict = {
-                    edge_name: self.dropout(self.activation(h_update_dict[edge_name])) for edge_name in h_update_dict
+                    node_name: self.dropout(
+                        self.activation(h_update_dict[node_name])
+                    )
+                    for node_name in h_update_dict
                 }
                 # Update node features (n, d) -> (n, d)
                 h_dict = {
-                    edge_name: (
-                        h_dict[edge_name] + h_update_dict[edge_name]
+                    node_name: (
+                        h_dict[node_name] + h_update_dict[node_name]
                         if self.residual
-                        else h_update_dict[edge_name]
+                        else h_update_dict[node_name]
                     )
-                    for edge_name in h_update_dict
+                    for node_name in h_update_dict
                 }
                 # Update node coordinates (n, 3) -> (n, 3)
                 pos_dict = {
-                    edge_name: (
-                        pos_dict[edge_name] + pos_update_dict[edge_name]
+                    node_name: (
+                        pos_dict[node_name] + pos_update_dict[node_name]
                         if self.residual
-                        else pos_update_dict[edge_name]
+                        else pos_update_dict[node_name]
                     )
-                    for edge_name in pos_update_dict
+                    for node_name in pos_update_dict
                 }
             else:
                 # Message passing layer
-                h_update_dict = layer(h_dict, pos_dict, batch.edge_index_dict)
+                h_update_dict = layer(h_dict, batch.edge_index_dict)
                 h_update_dict = {
-                    edge_name: self.dropout(self.activation(h_update_dict[edge_name])) for edge_name in h_update_dict
+                    node_name: self.dropout(
+                        self.activation(h_update_dict[node_name])
+                    )
+                    for node_name in h_update_dict
                 }
                 # Update node features (n, d) -> (n, d)
                 h_dict = {
-                    edge_name: (
-                        h_dict[edge_name] + h_update_dict[edge_name]
+                    node_name: (
+                        h_dict[node_name] + h_update_dict[node_name]
                         if self.residual
-                        else h_update_dict[edge_name]
+                        else h_update_dict[node_name]
                     )
-                    for edge_name in h_update_dict
+                    for node_name in h_update_dict
                 }
 
         return EncoderOutput(

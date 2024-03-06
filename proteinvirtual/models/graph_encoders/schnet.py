@@ -10,12 +10,10 @@ from torch_geometric.data import Batch
 from torch_geometric.nn.conv import HeteroConv
 from torch_geometric.nn import Linear
 from torch_geometric.nn.models import SchNet
-from torch_geometric.nn.models.schnet import (
-    CFConv,
-    ShiftedSoftplus,
-)
+from torch_geometric.nn.models.schnet import ShiftedSoftplus
 
 from proteinworkshop.types import EncoderOutput
+from proteinvirtual.models.graph_encoders.layers.cfconv import CFConv
 
 import logging
 
@@ -23,7 +21,8 @@ import logging
 class VirtualSchNet(SchNet):
     def __init__(
         self,
-        edge_list: List[str],
+        node_list: List[str],
+        edge_list: List[List[str]],
         hidden_channels: int = 128,
         out_dim: int = 1,
         num_filters: int = 128,
@@ -40,6 +39,8 @@ class VirtualSchNet(SchNet):
         """Initializes an instance of the SchNetModel class with the provided
         parameters and virtual nodes.
 
+        :param edge_list: List of 3-tuples for edge names in the HeteroGraph input.
+        :type edge_list: List[List[str]]
         :param hidden_channels: Number of channels in the hidden layers
             (default: ``128``)
         :type hidden_channels: int
@@ -79,7 +80,9 @@ class VirtualSchNet(SchNet):
 
         self.readout = readout
         # Overwrite embbeding
-        self.embedding = torch.nn.LazyLinear(hidden_channels)
+        self.embeddings = {}
+        for node_name in node_list:
+            self.embeddings[node_name] = torch.nn.LazyLinear(hidden_channels)
         # Overwrite atom embedding and final predictor
         self.lin2 = torch.nn.LazyLinear(out_dim)
 
@@ -122,8 +125,8 @@ class VirtualSchNet(SchNet):
         :rtype: EncoderOutput
         """
         h_dict = {
-            edge_name: self.embedding(batch.x_dict[edge_name])
-            for edge_name in batch.x_dict
+            node_name: self.embeddings[node_name](batch.x_dict[node_name])
+            for node_name in batch.x_dict
         }
 
         u_dict = {
@@ -132,18 +135,23 @@ class VirtualSchNet(SchNet):
         }
         v_dict = {
             edge_name: batch.edge_index_dict[edge_name][1]
-            for edge_name in batch.edge_input_dict
+            for edge_name in batch.edge_index_dict
         }
+        # only compute edge weights for nodes with positions
         edge_weight_dict = {
             edge_name: (
-                batch.pos_dict[edge_name][u_dict[edge_name]]
-                - batch.pos_dict[edge_name][v_dict[edge_name]]
+                batch.pos_dict[edge_name[0]][u_dict[edge_name]]
+                - batch.pos_dict[edge_name[2]][v_dict[edge_name]]
             ).norm(dim=-1)
-            for edge_name in batch.pos_dict
+            for edge_name in batch.edge_index_dict
+            if (
+                edge_name[0] in batch.pos_dict
+                and edge_name[2] in batch.pos_dict
+            )
         }
         edge_attr_dict = {
             edge_name: self.distance_expansion(edge_weight_dict[edge_name])
-            for edge_name in batch.edge_weight_dict
+            for edge_name in edge_weight_dict
         }
 
         for interaction in self.interactions:
@@ -151,18 +159,18 @@ class VirtualSchNet(SchNet):
                 h_dict, batch.edge_index_dict, edge_weight_dict, edge_attr_dict
             )
             h_dict = {
-                edge_name: h_dict[edge_name] + h_update_dict[edge_name]
-                for edge_name in h_update_dict
+                node_name: h_dict[node_name] + h_update_dict[node_name]
+                for node_name in h_update_dict
             }
 
         h_dict = {
-            edge_name: self.lin1(h_dict[edge_name]) for edge_name in h_dict
+            node_name: self.lin1(h_dict[node_name]) for node_name in h_dict
         }
         h_dict = {
-            edge_name: self.act(h_dict[edge_name]) for edge_name in h_dict
+            node_name: self.act(h_dict[node_name]) for node_name in h_dict
         }
         h_dict = {
-            edge_name: self.lin2(h_dict[edge_name]) for edge_name in h_dict
+            node_name: self.lin2(h_dict[node_name]) for node_name in h_dict
         }
 
         return EncoderOutput(
@@ -170,7 +178,7 @@ class VirtualSchNet(SchNet):
                 "node_embedding": h_dict["real"],
                 "graph_embedding": torch_scatter.scatter(
                     h_dict["real"],
-                    batch.batch["real"],
+                    batch.batch_dict["real"],
                     dim=0,
                     reduce=self.readout,
                 ),
@@ -181,7 +189,7 @@ class VirtualSchNet(SchNet):
 class HeteroInteractionBlock(torch.nn.Module):
     def __init__(
         self,
-        edge_list: List[str],
+        edge_list: List[List[str]],
         hidden_channels: int,
         num_gaussians: int,
         num_filters: int,
@@ -231,11 +239,9 @@ class HeteroInteractionBlock(torch.nn.Module):
             edge_attr_dict=edge_attr_dict,
         )
         x_dict = {
-            edge_name: self.act(x_dict[edge_name])
-            for edge_name in self.edge_list
+            node_name: self.act(x_dict[node_name]) for node_name in x_dict
         }
         x_dict = {
-            edge_name: self.lin(x_dict[edge_name])
-            for edge_name in self.edge_list
+            node_name: self.lin(x_dict[node_name]) for node_name in x_dict
         }
         return x_dict

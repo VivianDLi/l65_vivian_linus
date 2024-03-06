@@ -46,8 +46,8 @@ def compute_random_uniform(num_nodes, basis_pos, basis_batch=None):
         max = scatter(src=basis_pos, index=basis_batch, dim=0, reduce='max')  # (B, 3)
         min = scatter(src=basis_pos, index=basis_batch, dim=0, reduce='min')  # (B, 3)
         bsz = max.shape[0]
-        max = torch.repeat_interleave(max, bsz, dim=0)
-        min = torch.repeat_interleave(min, bsz, dim=0)
+        max = torch.repeat_interleave(max, num_nodes, dim=0)
+        min = torch.repeat_interleave(min, num_nodes, dim=0)
         rand = torch.rand(bsz * num_nodes, 3, dtype=basis_pos.dtype, device=basis_pos.device)
         return rand * (max - min) + min
     

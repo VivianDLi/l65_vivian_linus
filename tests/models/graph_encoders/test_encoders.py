@@ -12,9 +12,8 @@ from proteinvirtual import constants
 ENCODERS: List[str] = [
     "schnet",
     "schnet_hierarchy",
-    "gnn_geo_hetero_hierarchy",
-    "gnn_nongeo_hetero_hierarchy",
     "gnn_nongeo_hetero",
+    "gnn_nongeo_hetero_hierarchy",
 ]
 
 FEATURES = os.listdir(constants.VIRTUAL_HYDRA_CONFIG_PATH / "features")
@@ -49,10 +48,22 @@ def test_instantiate_encoders():
         assert enc, f"Encoder {encoder} not instantiated!"
 
 
-@pytest.mark.skip(reason="Too slow for GitHub Actions. Works locally.")
+@pytest.mark.skipif(
+    "not config.getoption('--run-slow')",
+    reason="Too slow for GitHub Actions. Only runs if --run-slow is given.",
+)
 def test_encoder_forward_pass(example_batch):
     for encoder in ENCODERS:
         for feature in FEATURES:
+            # checking for right feature/encoder structure
+            if ("hierarchy" in encoder and "hierarchy" not in feature) or (
+                "hierarchy" in feature and "hierarchy" not in encoder
+            ):
+                continue
+            # checking for position features in schent
+            if "schnet" in encoder and not feature.startswith("geo"):
+                continue
+            print(encoder, feature)
             encoder_config_path = (
                 constants.VIRTUAL_HYDRA_CONFIG_PATH
                 / "encoder"

@@ -42,7 +42,9 @@ vector_node_features: {}
 scalar_edge_features:
   r_to_r:
     - edge_distance
-  rv_mutual:
+  r_to_v:
+    - random_16
+  v_to_r:
     - random_16
   v_to_v_upwards:
     - random_16
