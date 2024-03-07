@@ -5,12 +5,7 @@ from beartype import beartype as typechecker
 from graphein.protein.tensor.data import ProteinBatch
 from jaxtyping import jaxtyped
 from torch_geometric.data import Batch
-from torch_geometric.nn.conv import (
-    MessagePassing,
-    HeteroConv,
-    GraphConv,
-    SAGEConv,
-)
+from torch_geometric.nn.conv import *
 
 from proteinworkshop.models.utils import get_aggregation, get_activations
 from proteinworkshop.types import EncoderOutput
@@ -46,6 +41,14 @@ def get_gnn_layer(
         return GraphConv(emb_dim, emb_dim, aggr=aggr)  # type: ignore
     elif layer_name == "SAGE":
         return SAGEConv(emb_dim, emb_dim, aggr=aggr)
+    elif layer_name == "GAT":
+        return GATConv(emb_dim, emb_dim, aggr=aggr) 
+    elif layer_name == "GATv2":
+        return GATv2Conv(emb_dim, emb_dim, aggr=aggr)
+    elif layer_name == "SGC":
+        return SGConv(emb_dim, emb_dim, aggr=aggr)
+    elif layer_name == "Transformer":
+        return TransformerConv(emb_dim, emb_dim, aggr=aggr)
     else:
         raise ValueError(f"Unknown layer: {layer_name}")
 
@@ -101,7 +104,7 @@ class VirtualGNN(nn.Module):
         """Builds a GNN encoder for a hierarchical virtual node model."""
         # Define separate GNN layer per heter-node type and find node types
         node_names = set()
-        conv_dict = {}
+        conv_config_dict = {}
         for edge_name, layer_config in self.layer_types.items():
             assert not edge_name.startswith(
                 "_"
@@ -125,9 +128,10 @@ class VirtualGNN(nn.Module):
             assert len(layer_config["layers"]) == len(
                 pairs
             ), f"Number of layer types must match the number of pairs for edge type {edge_name}"
-            for i, (n_from, n_to) in enumerate(pairs):
-                conv_dict[n_from, edge_name, n_to] = get_gnn_layer(
-                    layer_config["layers"][i], self.emb_dim
+            for (n_from, n_to), conv_t in zip(pairs, layer_config["layers"]):
+                conv_config_dict[n_from, edge_name, n_to] = dict(
+                   layer_name=conv_t,
+                   emb_dim=self.emb_dim, 
                 )
                 node_names.update([n_from, n_to])
         # Stack of Embeddings per node type
@@ -138,6 +142,7 @@ class VirtualGNN(nn.Module):
         # Stack of Heterogeneous Conv Layers
         convs = nn.ModuleList()
         for _ in range(self.num_layers):
+            conv_dict = {key: get_gnn_layer(**conv_config_dict[key]) for key in conv_config_dict.keys()}
             convs.append(HeteroConv(conv_dict, aggr=self.aggr))
 
         return embs, convs
