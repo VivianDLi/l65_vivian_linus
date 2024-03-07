@@ -27,7 +27,7 @@ scalar_node_features:
     - kappa
     - dihedrals
   virtual:
-    - random_16
+    - random_64
 vector_node_features: {}
 scalar_edge_features:
   r_to_r:
