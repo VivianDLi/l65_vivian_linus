@@ -18,7 +18,7 @@ PROJECT_PATH = SRC_PATH.parent
 
 # ---------------- ENVIRONMENT VARIABLES ----------------
 # Data paths are configured using the `.env` file in the project root.
-
+logger.debug("Project path is " + str(PROJECT_PATH))
 if not os.path.exists(PROJECT_PATH / ".env"):
     logger.debug(
         "No `.env` file found in project root. Checking for env vars..."

@@ -10,8 +10,8 @@ from proteinworkshop import register_custom_omegaconf_resolvers
 from proteinvirtual import constants
 
 ENCODERS: List[str] = [
-    "schnet",
-    "schnet_hierarchy",
+    "virtual_schnet",
+    "virtual_schnet_hierarchy",
     "gnn_nongeo_hetero",
     "gnn_nongeo_hetero_hierarchy",
 ]

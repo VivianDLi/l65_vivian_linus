@@ -124,6 +124,12 @@ class VirtualSchNet(SchNet):
             the dimension of the embeddings.
         :rtype: EncoderOutput
         """
+        # Set devices of modules
+        for node_name in batch.x_dict:
+            self.embeddings[node_name].to(batch.x_dict["real"].device)
+            self.lin1.to(batch.x_dict["real"].device)
+            self.lin2.to(batch.x_dict["real"].device)
+
         h_dict = {
             node_name: self.embeddings[node_name](batch.x_dict[node_name])
             for node_name in batch.x_dict

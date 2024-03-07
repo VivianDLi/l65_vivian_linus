@@ -52,8 +52,6 @@ def convert_to_hetero_batch(batch: Batch, group_attributes_by_element=False) -> 
     edge_attributes = set(_attr_src.edge_attrs())
     other_attributes = attributes - node_attributes - edge_attributes
     
-    print(node_attributes, edge_attributes, other_attributes)
-    
     if len(node_attributes) > 0:
         out["real"].update({k: attr_dict[k] for k in node_attributes})
         if hasattr(batch, "_slice_dict"):
@@ -93,7 +91,8 @@ class VirtualProteinFeaturiser(nn.Module):
     
     def forward(self, batch: Union[Batch, ProteinBatch]) -> Union[Batch, ProteinBatch]:
         # Representation
-        batch = transform_representation(batch, self.representation) 
+        if hasattr(batch, "coords"):
+            batch = transform_representation(batch, self.representation) 
         
         if isinstance(batch, Data):
             batch = convert_to_hetero_batch(batch)

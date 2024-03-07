@@ -2,12 +2,12 @@ _target_: proteinvirtual.features.factory.VirtualProteinFeaturiser
 representation: CA
 virtual_nodes:
   secondary:
-    n_nodes: 10
+    n_nodes: 8
     positions:
       type: fps
       basis: real
   tertiary:
-    n_nodes: 5
+    n_nodes: 4
     positions:
       type: fps
       basis: secondary
