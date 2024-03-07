@@ -33,9 +33,9 @@ scalar_edge_features:
   r_to_r:
     - edge_distance
   v_to_r: 
-    - random_16
+    - zero_0
   r_to_v:
-    - random_16
+    - zero_0
   v_to_v:
-    - random_16
+    - zero_0
 vector_edge_features: {}
