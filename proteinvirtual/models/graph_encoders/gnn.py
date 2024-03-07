@@ -131,7 +131,7 @@ class VirtualGNN(nn.Module):
                 )
                 node_names.update([n_from, n_to])
         # Stack of Embeddings per node type
-        embs = {}
+        embs = nn.ModuleDict()
         for node in node_names:
             embs[node] = nn.LazyLinear(self.emb_dim)
 
