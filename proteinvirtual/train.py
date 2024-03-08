@@ -3,6 +3,7 @@ Main module to load and train the model. This should be the program entry
 point.
 """
 
+import torch
 import graphein
 import hydra
 import lovely_tensors as lt
@@ -36,6 +37,10 @@ def _main(cfg: DictConfig) -> None:
     """Load and validate the hydra config."""
     utils.extras(cfg)
     cfg = config.validate_config(cfg)
+
+    if torch.cuda.is_available():
+        torch.set_float32_matmul_precision("medium")
+    
     train_model(cfg)
 
 
