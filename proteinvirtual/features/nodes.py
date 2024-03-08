@@ -56,7 +56,7 @@ def compute_random_uniform(num_nodes, basis_pos, basis_batch=None):
 def scatter_std(x, index, mean=None):
     if mean is None:
         mean = scatter(x, index, dim=0, reduce='mean')
-    mean = torch.gather(mean, index.unsqueeze(-1).repeat(3, dim=1))
+    mean = torch.gather(mean, dim=0, index=index.unsqueeze(-1).repeat(1, 3))
     return torch.sqrt(scatter((x - mean) ** 2, index, dim=0, reduce='mean'))
 
 
@@ -69,8 +69,8 @@ def compute_random_normal(num_nodes, basis_pos, basis_batch=None):
         mean = scatter(src=basis_pos, index=basis_batch, dim=0, reduce='mean')  # (B, 3)
         std = scatter_std(basis_pos, basis_batch, mean)  # (B, 3)
         bsz = mean.shape[0]
-        mean = torch.repeat_interleave(mean, bsz, dim=0)
-        std = torch.repeat_interleave(std, bsz, dim=0)
+        mean = torch.repeat_interleave(mean, num_nodes, dim=0)
+        std = torch.repeat_interleave(std, num_nodes, dim=0)
         rand = torch.randn(bsz * num_nodes, 3, dtype=basis_pos.dtype, device=basis_pos.device)
         return rand * std + mean
 
