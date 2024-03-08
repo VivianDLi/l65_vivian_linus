@@ -3,6 +3,7 @@ representation: CA
 virtual_nodes:
   virtual:
     n_nodes: 16
+    positions: random
 edge_types: # Custom types for different edges
   r_to_r:
     strategies:
@@ -10,15 +11,15 @@ edge_types: # Custom types for different edges
   v_to_r:
     pairs: [[virtual, real]]
     strategies:
-      - full
+      - ${vedge_t}
   r_to_v:
     pairs: [[real, virtual]]
     strategies:
-      - full
+      - ${vedge_t}
   v_to_v:
     pairs: [[virtual, virtual]]
     strategies:
-      - full
+      - ${vedge_t}
 scalar_node_features:
   real:
     - amino_acid_one_hot
@@ -27,15 +28,17 @@ scalar_node_features:
     - kappa
     - dihedrals
   virtual:
-    - random_64
+    - type: navg
+      basis: real
+      k: 16
 vector_node_features: {}
 scalar_edge_features:
   r_to_r:
     - edge_distance
   v_to_r: 
-    - zero_0
+    - ${vedge_sf}
   r_to_v:
-    - zero_0
+    - ${vedge_sf}
   v_to_v:
-    - zero_0
+    - ${vedge_sf}
 vector_edge_features: {}
