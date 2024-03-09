@@ -80,7 +80,7 @@ class VirtualSchNet(SchNet):
 
         self.readout = readout
         # Overwrite embbeding
-        self.embeddings = {}
+        self.embeddings = nn.ModuleDict()
         for node_name in node_list:
             self.embeddings[node_name] = torch.nn.LazyLinear(hidden_channels)
         # Overwrite atom embedding and final predictor
@@ -125,11 +125,6 @@ class VirtualSchNet(SchNet):
         :rtype: EncoderOutput
         """
         # Set devices of modules
-        for node_name in batch.x_dict:
-            self.embeddings[node_name].to(batch.x_dict["real"].device)
-            self.lin1.to(batch.x_dict["real"].device)
-            self.lin2.to(batch.x_dict["real"].device)
-
         h_dict = {
             node_name: self.embeddings[node_name](batch.x_dict[node_name])
             for node_name in batch.x_dict
