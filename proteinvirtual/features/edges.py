@@ -128,7 +128,7 @@ def add_edges(strategies: List[str], n_from, edge_name, n_to, data: HeteroData):
     return data
 
 
-def add_edge_batch(strategies: List[str], n_from, edge_name, n_to, batch: Batch):
+def add_edge_batch(strategies: List[str], n_from, edge_name, n_to, batch: Batch, bidirectional: bool = False):
     assert isinstance(batch, HeteroData), "Batch must be a Batch(HeteroData)"
     assert n_from in batch.node_types, f"Node type {n_from} not found in batch"
     assert n_to in batch.node_types, f"Node type {n_to} not found in batch"
@@ -172,8 +172,13 @@ def add_edge_batch(strategies: List[str], n_from, edge_name, n_to, batch: Batch)
         ],
         dim=0,
     ).unsqueeze(0)
-    
-    batch[n_from, edge_name, n_to].edge_index = torch.cat(edges, dim=1)
+
+    edge_index = torch.cat(edges, dim=1)
+    batch[n_from, edge_name, n_to].edge_index = edge_index
     batch[n_from, edge_name, n_to].edge_type = indxs
+    if bidirectional:
+        # swap rows of edge_index to swap edge direction
+        batch[n_to, edge_name, n_from].edge_index = edge_index.index_select(0, torch.LongTensor([1, 0]).to(device=edge_index.device))
+        batch[n_to, edge_name, n_from].edge_type = indxs
     return batch
     

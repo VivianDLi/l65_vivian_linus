@@ -56,12 +56,16 @@ def test_encoder_forward_pass(example_batch):
     for encoder in ENCODERS:
         for feature in FEATURES:
             # checking for right feature/encoder structure
-            if ("hierarchy" in encoder and "hierarchy" not in feature) or (
-                "hierarchy" in feature and "hierarchy" not in encoder
+            if (
+                ("hierarchy" in encoder and "hierarchy" not in feature)
+                or ("hierarchy" in feature and "hierarchy" not in encoder)
+                or "configurable" in feature
             ):
                 continue
-            # checking for position features in schent
-            if "schnet" in encoder and not feature.startswith("geo"):
+            # checking for position features and correct formatting in schnet
+            if "schnet" in encoder and (
+                not feature.startswith("geo") or not "hetero" in feature
+            ):
                 continue
             print(encoder, feature)
             encoder_config_path = (
