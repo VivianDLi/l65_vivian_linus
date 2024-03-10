@@ -1,0 +1,63 @@
+program: proteinvirtual/train.py
+method: grid
+name: fold_schnet
+metric: # Does not matter, as we are using sweep to run the experiment.
+  goal: minimize
+  name: val/loss/total
+
+parameters:
+  task:
+    value: multiclass_graph_classification
+
+  dataset:
+    values: [fold_family, fold_superfamily, fold_fold]
+
+  encoder:
+    value: virtual_schnet_hierarchy
+
+  encoder.hidden_channels:
+    values: [64, 256, 512]
+
+  encoder.num_layers:
+    values: [2, 4, 6]
+
+  decoder.graph_label.dropout:
+    value: 0.5
+
+  optimiser.optimizer.lr:
+    value: 0.001
+
+  features:
+    value: geo_hetero_hierarchy
+
+  features.virtual_nodes.virtual.n_nodes:
+    values: [8, 16, 32]
+
+  scheduler:
+    value: plateau
+
+  extras.enforce_tags:
+    value: False
+
+  trainer:
+    value: gpu
+
+  trainer.max_epochs:
+    value: 150
+
+  logger:
+    value: wandb
+
+  name:
+    value: "${hydra:runtime.choices.features}_${hydra:runtime.choices.encoder}"
+
+  test:
+    value: True
+
+command:
+  - ${env}
+  - HYDRA_FULL_ERROR=1
+  - WANDB_START_METHOD=thread
+  - python3
+  - ${program}
+  - ${args_no_hyphens}

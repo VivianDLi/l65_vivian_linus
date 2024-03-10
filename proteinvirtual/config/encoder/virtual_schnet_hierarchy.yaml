@@ -1,6 +1,6 @@
 _target_: proteinvirtual.models.graph_encoders.schnet.VirtualSchNet
 node_list: ["real", "secondary", "tertiary", "root"]
-edge_list: [["real", "r_to_r", "real"], ["real", "r_to_v", "secondary"], ["secondary", "v_to_v_upwards", "tertiary"], ["tertiary", "v_to_v_upwards", "root"], ["root", "v_to_v_downwards", "tertiary"], ["tertiary", "v_to_v_downwards", "secondary"], ["secondary", "v_to_r", "real"]]
+edge_list: [["real", "r_to_r", "real"], ["real", "rv_mutual", "secondary"], ["secondary", "v_to_v", "tertiary"], ["tertiary", "v_to_v", "root"], ["root", "v_to_v", "tertiary"], ["tertiary", "v_to_v", "secondary"], ["secondary", "rv_mutual", "real"]]
 hidden_channels: 512 # Number of channels in the hidden layers
 out_dim: 32 # Output dimension of the model
 num_layers: 6 # Number of filters used in convolutional layers

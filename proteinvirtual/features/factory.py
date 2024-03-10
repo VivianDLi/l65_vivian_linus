@@ -198,11 +198,17 @@ class VirtualProteinFeaturiser(nn.Module):
                 
                 # Add edges
                 assert "strategies" in edge_config.keys(), f"Strategies must be specified for edge type {edge_name}"
+                if "bidirectional" not in edge_config.keys():
+                    bidirectional = False
+                else:
+                    bidirectional = edge_config["bidirectional"]
                 for n_from, n_to in pairs:
                     if edge_name not in edge_from_to:
                         edge_from_to[edge_name] = []
                     edge_from_to[edge_name].append((n_from, n_to))
-                    batch = add_edge_batch(edge_config['strategies'], n_from, edge_name, n_to, batch)
+                    if bidirectional:
+                        edge_from_to[edge_name].append((n_to, n_from))
+                    batch = add_edge_batch(edge_config['strategies'], n_from, edge_name, n_to, batch, bidirectional)
         
         # Add scalar edge_features
         if self.scalar_edge_features:
