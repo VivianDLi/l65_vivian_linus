@@ -5,10 +5,11 @@ from beartype import beartype as typechecker
 from graphein.protein.tensor.data import ProteinBatch
 from jaxtyping import jaxtyped
 from torch_geometric.data import Batch
-from torch_geometric.nn.conv import *
+from torch_geometric.nn.conv import GraphConv, SAGEConv, GATConv, GATv2Conv, SGConv, TransformerConv, MessagePassing
 
 from proteinworkshop.models.utils import get_aggregation, get_activations
 from proteinworkshop.types import EncoderOutput
+from proteinvirtual.models.graph_encoders.layers import EGNN, HeteroConv
 
 import logging
 
@@ -16,8 +17,6 @@ import logging
 def get_gnn_layer(
     layer_name: str,
     emb_dim: Union[int, Tuple[int, int]],
-    activation: str = "relu",
-    norm: str = "layer",
     aggr: str = "mean",
 ) -> MessagePassing:
     """Returns a GNN layer for heterogeneous convolution.
@@ -49,6 +48,8 @@ def get_gnn_layer(
         return SGConv(emb_dim, emb_dim, aggr=aggr)
     elif layer_name == "Transformer":
         return TransformerConv(emb_dim, emb_dim, aggr=aggr)
+    elif layer_name == "EGNN":
+        return EGNN(emb_dim, aggr=aggr)
     else:
         raise ValueError(f"Unknown layer: {layer_name}")
 
@@ -63,7 +64,7 @@ class VirtualGNN(nn.Module):
         aggr: str = "sum",
         pool: str = "mean",
         dropout: float = 0.1,
-        pos_features: bool = True,
+        pos_features: bool = False,
         edge_features: bool = False,
         residual: bool = True,
     ):
@@ -79,7 +80,7 @@ class VirtualGNN(nn.Module):
         :type aggr: str
         :param dropout: Probability to use for all layer dropout functions. Defaults to 0.1.
         :type dropout: float
-        :param pos_features: Whether to use geometric features. Defaults to True.
+        :param pos_features: Whether to use geometric features. Defaults to False.
         :type pos_features: bool
         :param edge_features: Whether to use edge features. Defaults to False.
         :type edge_features: bool
@@ -181,6 +182,8 @@ class VirtualGNN(nn.Module):
             node_name: self.embeddings[node_name](batch.x_dict[node_name])
             for node_name in batch.x_dict
         }
+        if self.pos_features:
+            pos_dict = batch.pos_dict
 
         for layer in self.layers:
             if self.edge_features and self.pos_features:

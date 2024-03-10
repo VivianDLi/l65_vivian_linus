@@ -14,6 +14,8 @@ ENCODERS: List[str] = [
     "virtual_schnet_hierarchy",
     "gnn_nongeo_hetero",
     "gnn_nongeo_hetero_hierarchy",
+    "gnn_geo_hetero",
+    "gnn_geo_hetero_hierarchy",
 ]
 
 FEATURES = os.listdir(constants.VIRTUAL_HYDRA_CONFIG_PATH / "features")
@@ -59,11 +61,12 @@ def test_encoder_forward_pass(example_batch):
             if (
                 ("hierarchy" in encoder and "hierarchy" not in feature)
                 or ("hierarchy" in feature and "hierarchy" not in encoder)
+                or (feature.startswith("geo") and "nongeo" in encoder)
                 or "configurable" in feature
             ):
                 continue
             # checking for position features and correct formatting in schnet
-            if "schnet" in encoder and (
+            if ("schnet" in encoder or "gnn_geo" in encoder) and (
                 not feature.startswith("geo") or not "hetero" in feature
             ):
                 continue
