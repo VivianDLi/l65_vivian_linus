@@ -39,7 +39,7 @@ scalar_node_features:
     - type: navg
       basis: real
       k: 16
-  tertiery:
+  tertiary:
     - random_64
   root:
     - random_128

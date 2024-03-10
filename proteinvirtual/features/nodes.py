@@ -40,16 +40,17 @@ def fps_torch(pos: torch.tensor, k: int = 1, select: int = 0) -> torch.tensor:
 
 def compute_random_uniform(num_nodes, basis_pos, basis_batch=None):
     if basis_batch is None:
+        assert isinstance(num_nodes, int)
         max = torch.max(basis_pos, dim=0)
         min = torch.min(basis_pos, dim=0)
         return torch.rand(num_nodes, 3, dtype=basis_pos.dtype, device=basis_pos.device) * (max - min) + min
     else:
         max = scatter(src=basis_pos, index=basis_batch, dim=0, reduce='max')  # (B, 3)
         min = scatter(src=basis_pos, index=basis_batch, dim=0, reduce='min')  # (B, 3)
-        bsz = max.shape[0]
+        num_elements = max.shape[0] * num_nodes if isinstance(num_nodes, int) else torch.sum(num_nodes).int()
         max = torch.repeat_interleave(max, num_nodes, dim=0)
         min = torch.repeat_interleave(min, num_nodes, dim=0)
-        rand = torch.rand(bsz * num_nodes, 3, dtype=basis_pos.dtype, device=basis_pos.device)
+        rand = torch.rand(num_elements, 3, dtype=basis_pos.dtype, device=basis_pos.device)
         return rand * (max - min) + min
     
     
@@ -62,16 +63,17 @@ def scatter_std(x, index, mean=None):
 
 def compute_random_normal(num_nodes, basis_pos, basis_batch=None):
     if basis_batch is None:
+        assert isinstance(num_nodes, int)
         mean = torch.mean(basis_pos, dim=0)
         std = torch.std(basis_pos, dim=0)
         return torch.randn(num_nodes, 3, dtype=basis_pos.dtype, device=basis_pos.device) * std + mean
     else:
         mean = scatter(src=basis_pos, index=basis_batch, dim=0, reduce='mean')  # (B, 3)
         std = scatter_std(basis_pos, basis_batch, mean)  # (B, 3)
-        bsz = mean.shape[0]
+        num_elements = max.shape[0] * num_nodes if isinstance(num_nodes, int) else torch.sum(num_nodes).int()
         mean = torch.repeat_interleave(mean, num_nodes, dim=0)
         std = torch.repeat_interleave(std, num_nodes, dim=0)
-        rand = torch.randn(bsz * num_nodes, 3, dtype=basis_pos.dtype, device=basis_pos.device)
+        rand = torch.randn(num_elements, 3, dtype=basis_pos.dtype, device=basis_pos.device)
         return rand * std + mean
 
 
@@ -80,10 +82,17 @@ def compute_fps(num_nodes, basis_pos, basis_batch=None):
         return fps_torch(basis_pos, k=num_nodes)
     else:
         bsz = torch.max(basis_batch).item() + 1
-        out = torch.empty((bsz, num_nodes, 3), dtype=basis_pos.dtype, device=basis_pos.device)
-        # TODO: look into parallelising this
+        if isinstance(num_nodes, int):
+            num_nodes = torch.tensor([num_nodes] * bsz, device=basis_pos.device, dtype=torch.long)
+        else:
+            assert isinstance(num_nodes, torch.Tensor), "num_nodes must either be an int or torch.Tensor"
+            assert num_nodes.shape[0] == bsz, "batch size must match"
+        num_nodes = list(num_nodes.cpu().numpy())
+        out = torch.empty((sum(num_nodes), 3), dtype=basis_pos.dtype, device=basis_pos.device)
+        ptr = 0  # I love serial programming :)
         for i in range(bsz):
-            out[i] = fps_torch(basis_pos[basis_batch == i], k=num_nodes)
+            out[ptr: ptr+num_nodes[i]] = fps_torch(basis_pos[basis_batch == i], k=num_nodes[i])
+            ptr += num_nodes[i]
         return out.view(-1, 3)
 
    
@@ -139,7 +148,7 @@ def add_vnode_positions_batch(position,
     else:
         raise NotImplemented(f"Position strategy {position['type']} not implemented")
     
-    new_batch = torch.arange(batch.num_graphs).repeat_interleave(n_nodes).to(dtype=torch.long, device=new_pos.device)
+    new_batch = torch.arange(batch.num_graphs).to(dtype=torch.long, device=new_pos.device).repeat_interleave(n_nodes)
     batch[node_name].pos = new_pos
     batch[node_name].batch = new_batch
     return batch

@@ -8,6 +8,7 @@ from proteinvirtual.features.edges import *
 from proteinvirtual.features.node_features import *
 from proteinvirtual.features.edge_features import *
 
+from loguru import logger as log
 from typing import *
 import logging
 
@@ -102,20 +103,37 @@ class VirtualProteinFeaturiser(nn.Module):
         
         # Add virtual nodes
         virtual_node_names = []
-        node_counts: Dict[str, int] = {}
         if self.virtual_nodes:
             for node_name, node_config in self.virtual_nodes.items():
                 assert node_name != "real", "Cannot name a virtual node 'real'"
                 assert not node_name.startswith("_"), "Node names cannot start with _, as they are reserved for internal use"
-                assert 'n_nodes' in node_config.keys(), "n_nodes must be specified for virtual nodes"
-                n_nodes = node_config['n_nodes']
-                virtual_node_names.append(node_name)
-                node_counts[node_name] = n_nodes
                 
+                has_n_nodes = 'n_nodes' in node_config.keys()
+                has_p_nodes = 'p_nodes' in node_config.keys()
+                
+                if has_n_nodes and has_p_nodes:
+                    log.wanring(f"Both n_nodes and p_nodes specified for virtual node {node_name}, p_nodes will be ignored!")
+                
+                if not has_n_nodes and not has_p_nodes:
+                    raise ValueError(f"one of n_node or p_node must be specified for virtual node {node_name}")
+                
+                batch_device = batch['real'].batch.device
                 bsz = batch.num_graphs
-                batch[node_name].batch = torch.repeat_interleave(torch.arange(bsz), n_nodes).to(
-                    dtype=torch.long, device=batch['real'].batch.device
+            
+                if has_n_nodes:
+                    n_nodes: torch.Tensor = torch.tensor([node_config['n_nodes']] * bsz, dtype=torch.long, device=batch_device)
+                else:
+                    batch_array = batch['real'].batch
+                    p_nodes = float(node_config['p_nodes'])
+                    n_real_nodes = torch.tensor([(batch_array==i).sum() for i in range(bsz)], dtype=torch.float, device=batch_device)
+                    n_nodes = torch.round(n_real_nodes * p_nodes).to(dtype=torch.long)
+                
+                batch[node_name].batch = torch.repeat_interleave(
+                    torch.arange(bsz).to(dtype=torch.long, device=batch_device), 
+                    n_nodes
                 )
+
+                virtual_node_names.append(node_name)
                 
                 # Add position if available
                 if 'positions' in node_config.keys():
@@ -158,7 +176,7 @@ class VirtualProteinFeaturiser(nn.Module):
                 assert not edge_name.startswith("_"), "Edge names cannot start with _, as they are reserved for internal use"
                 if edge_name == "r_to_r":
                     if 'pairs' in edge_config.keys():
-                        logging.warning("Edge type `r_to_r` is reserved for real node connections, ignoring pairs value")
+                        log.warning("Edge type `r_to_r` is reserved for real node connections, ignoring pairs value")
                     pairs = [['real', 'real']]
                 else:
                     assert 'pairs' in edge_config.keys(), f"Pairs must be specified for non-real edge type {edge_name}"
