@@ -3,7 +3,7 @@ representation: CA
 virtual_nodes:
   secondary:
     n_nodes: 32
-    positions: random_normal
+    positions: fps
   tertiary:
     n_nodes: 8
   root:

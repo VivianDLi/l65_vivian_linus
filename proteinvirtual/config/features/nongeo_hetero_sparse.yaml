@@ -3,7 +3,8 @@ representation: CA
 virtual_nodes:
   virtual:
     n_nodes: 16
-    positions: random
+    p_nodes: 0.5
+    positions: fps
 edge_types: # Custom types for different edges
   r_to_r:
     strategies:
