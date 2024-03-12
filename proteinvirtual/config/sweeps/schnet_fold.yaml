@@ -46,7 +46,7 @@ parameters:
     value: wandb
 
   name:
-    value: "${hydra:runtime.choices.features}_${hydra:runtime.choices.encoder}"
+    value: "${hydra:runtime.choices.features}_${hydra:runtime.choices.encoder}_${encoder.hidden_channels}channels_${encoder.num_layers}layers"
 
   test:
     value: True

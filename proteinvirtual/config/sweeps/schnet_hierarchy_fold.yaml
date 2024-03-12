@@ -1,6 +1,6 @@
 program: proteinvirtual/train.py
 method: grid
-name: fold_schnet
+name: fold_schnet_hierarchy
 metric: # Does not matter, as we are using sweep to run the experiment.
   goal: minimize
   name: val/loss/total
@@ -30,9 +30,6 @@ parameters:
   features:
     value: geo_hetero_hierarchy
 
-  features.virtual_nodes.virtual.n_nodes:
-    values: [8, 16, 32]
-
   scheduler:
     value: plateau
 
@@ -49,7 +46,7 @@ parameters:
     value: wandb
 
   name:
-    value: "${hydra:runtime.choices.features}_${hydra:runtime.choices.encoder}"
+    value: "${hydra:runtime.choices.features}_${hydra:runtime.choices.encoder}_${encoder.hidden_channels}channels_${encoder.num_layers}layers"
 
   test:
     value: True
