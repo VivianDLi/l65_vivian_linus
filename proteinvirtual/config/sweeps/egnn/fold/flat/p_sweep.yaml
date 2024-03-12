@@ -1,0 +1,64 @@
+program: proteinvirtual/train.py
+method: grid
+name: egnn_p_sweep
+project: protein_virtual
+metric: # Does not matter, as we are using sweep to run the experiment.
+  goal: maximize
+  name: val/graph_label/accuracy
+
+parameters:
+  task:
+    value: multiclass_graph_classification
+
+  dataset:
+    value: fold_fold
+
+  encoder:
+    value: gnn_geo_hetero
+
+  encoder.emb_dim:
+    values: [64, 128, 256]
+
+  encoder.num_layers:
+    values: [2, 4, 6]
+
+  decoder.graph_label.dropout:
+    value: 0.5
+
+  optimiser.optimizer.lr:
+    value: 0.001
+
+  features:
+    value: geo_hetero_p
+
+  features.virtual_nodes.virtual.p_nodes:
+    values: [0.1, 0.5, 1.0]
+
+  scheduler:
+    value: plateau
+
+  extras.enforce_tags:
+    value: False
+
+  trainer:
+    value: gpu
+
+  trainer.max_epochs:
+    value: 50
+
+  logger:
+    value: wandb
+
+  name:
+    value: "${hydra:runtime.choices.features}_${hydra:runtime.choices.encoder}_${encoder.emb_dim}channels_${encoder.num_layers}layers"
+
+  test:
+    value: True
+
+command:
+  - ${env}
+  - HYDRA_FULL_ERROR=1
+  - WANDB_START_METHOD=thread
+  - python
+  - ${program}
+  - ${args_no_hyphens}
