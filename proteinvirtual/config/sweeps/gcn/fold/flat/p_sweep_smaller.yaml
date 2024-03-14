@@ -1,0 +1,33 @@
+name: gcn_p_sweep_smaller
+program: proteinvirtual/train.py 
+project: protein_virtual
+method: grid
+metric:
+    goal: maximize
+    name: val/graph_label/accuracy
+parameters:
+    optimiser.optimizer.lr:
+        value: 1e-03
+    features.virtual_nodes.virtual.p_nodes:
+        values: [0.01, 0.05, 0.1, 0.2]
+command:
+ - /home/leenux/.miniconda/envs/gdl/bin/python
+ - ${program}
+ - "encoder=gnn_nongeo_hetero"
+ - "encoder.num_layers=4"
+ - "encoder.emb_dim=512"
+ - "features=nongeo_hetero_sparse"
+ - "~features.virtual_nodes.virtual.n_nodes"
+ - "task=multiclass_graph_classification"
+ - "dataset=fold_fold"
+ - "dataset.datamodule.num_workers=4"
+ - "dataset.datamodule.batch_size=32"
+ - "trainer=gpu"
+ - "scheduler=plateau"
+ - "trainer.max_epochs=35"
+ - "decoder.graph_label.dropout=0.5"
+ - "logger=wandb"
+ - "name=hatero_nongeo_sweep_p_fps"
+ - "++test=True"
+ - "optimiser.optimizer.weight_decay=1e-04"
+ - ${args_no_hyphens}

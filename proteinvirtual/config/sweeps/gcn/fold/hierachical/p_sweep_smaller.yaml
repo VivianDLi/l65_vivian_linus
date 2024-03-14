@@ -1,0 +1,33 @@
+name: gcn_hierachical_p_sweep_smaller
+program: proteinvirtual/train.py 
+project: protein_virtual
+method: grid
+metric:
+    goal: maximize
+    name: val/graph_label/accuracy
+parameters:
+    features.virtual_nodes.secondary.p_nodes:
+        values: [0.01, 0.05, 0.1, 0.2]
+    features.virtual_nodes.tertiary.n_nodes:
+        values: [8, 64]
+command:
+ - /home/leenux/.miniconda/envs/gdl/bin/python
+ - ${program}
+ - "name=hatero_nongeo_hierachical_sweep_p"
+ - "encoder=gnn_nongeo_hetero_hierarchy"
+ - "encoder.num_layers=4"
+ - "decoder.graph_label.dropout=0.5"
+ - "encoder.emb_dim=512"
+ - "features=nongeo_hetero_hierarchy_p"
+ - "task=multiclass_graph_classification"
+ - "dataset=fold_fold"
+ - "dataset.datamodule.num_workers=8"
+ - "dataset.datamodule.batch_size=40"
+ - "trainer=gpu"
+ - "scheduler=plateau"
+ - "trainer.max_epochs=30"
+ - "logger=wandb"
+ - "++test=True"
+ - "optimiser.optimizer.weight_decay=1e-04"
+ - "optimiser.optimizer.lr=1e-03"
+ - ${args_no_hyphens}
