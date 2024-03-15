@@ -87,7 +87,7 @@ def compute_fps(num_nodes, basis_pos, basis_batch=None, bsz=None):
         else:
             assert isinstance(num_nodes, torch.Tensor), "num_nodes must either be an int or torch.Tensor"
             assert num_nodes.shape[0] == bsz, "batch size must match"
-        num_real_nodes = torch.bincount(basis_batch)
+        num_real_nodes = torch.bincount(basis_batch, minlength=bsz)
         num_nodes = torch.minimum(num_nodes, num_real_nodes)
         num_nodes_list = list(num_nodes.cpu().numpy())
         out = torch.empty((sum(num_nodes_list), 3), dtype=basis_pos.dtype, device=basis_pos.device)
