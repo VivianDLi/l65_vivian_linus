@@ -17,10 +17,10 @@ parameters:
     value: gnn_geo_hetero
 
   encoder.emb_dim:
-    values: [64, 128, 256]
+    value: 256
 
   encoder.num_layers:
-    values: [2, 4, 6]
+    value: 4
 
   decoder.graph_label.dropout:
     value: 0.5
@@ -44,7 +44,7 @@ parameters:
     value: gpu
 
   trainer.max_epochs:
-    value: 50
+    value: 35
 
   logger:
     value: wandb
@@ -54,6 +54,9 @@ parameters:
 
   test:
     value: True
+
+  dataset.datamodule.batch_size:
+    value: 16
 
 command:
   - ${env}

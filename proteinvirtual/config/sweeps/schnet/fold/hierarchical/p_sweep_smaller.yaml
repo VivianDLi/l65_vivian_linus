@@ -16,11 +16,11 @@ parameters:
   encoder:
     value: virtual_schnet_hierarchy
 
-  encoder.emb_dim:
-    values: [64, 128, 256]
+  encoder.hidden_channels:
+    value: 256
 
   encoder.num_layers:
-    values: [2, 4, 6]
+    value: 4
 
   decoder.graph_label.dropout:
     value: 0.5
@@ -44,13 +44,13 @@ parameters:
     value: gpu
 
   trainer.max_epochs:
-    value: 50
+    value: 35
 
   logger:
     value: wandb
 
   name:
-    value: "${hydra:runtime.choices.features}_${hydra:runtime.choices.encoder}_${encoder.emb_dim}channels_${encoder.num_layers}layers"
+    value: "${hydra:runtime.choices.features}_${hydra:runtime.choices.encoder}_${encoder.hidden_channels}channels_${encoder.num_layers}layers"
 
   test:
     value: True
