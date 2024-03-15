@@ -93,6 +93,8 @@ def compute_fps(num_nodes, basis_pos, basis_batch=None):
         out = torch.empty((sum(num_nodes_list), 3), dtype=basis_pos.dtype, device=basis_pos.device)
         ptr = 0  # I love serial programming :)
         for i in range(bsz):
+            if num_nodes_list[i] == 0:
+                continue
             out[ptr: ptr+num_nodes_list[i]] = fps_torch(basis_pos[basis_batch == i], k=num_nodes_list[i])
             ptr += num_nodes_list[i]
         return out.view(-1, 3), num_nodes
