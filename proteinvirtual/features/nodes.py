@@ -77,11 +77,11 @@ def compute_random_normal(num_nodes, basis_pos, basis_batch=None):
         return rand * std + mean
 
 
-def compute_fps(num_nodes, basis_pos, basis_batch=None):
+def compute_fps(num_nodes, basis_pos, basis_batch=None, bsz=None):
     if basis_batch is None:
         return fps_torch(basis_pos, k=num_nodes)
     else:
-        bsz = torch.max(basis_batch).item() + 1
+        bsz = bsz or torch.max(basis_batch).item() + 1
         if isinstance(num_nodes, int):
             num_nodes = torch.tensor([num_nodes] * bsz, device=basis_pos.device, dtype=torch.long)
         else:
@@ -148,7 +148,7 @@ def add_vnode_positions_batch(position,
     elif position["type"] == "random_normal":
         new_pos = compute_random_normal(n_nodes, batch[basis].pos, batch[basis].batch)
     elif position["type"] == "fps":
-        new_pos, n_nodes = compute_fps(n_nodes, batch[basis].pos, batch[basis].batch)
+        new_pos, n_nodes = compute_fps(n_nodes, batch[basis].pos, batch[basis].batch, bsz=batch.num_graphs)
     else:
         raise NotImplemented(f"Position strategy {position['type']} not implemented")
     
