@@ -21,7 +21,7 @@ def fps_torch(pos: torch.tensor, k: int = 1, select: int = 0) -> torch.tensor:
     
     n = pos.shape[0]
     assert pos.shape[1] == 3, "Position tensor must be (N, 3)"
-    assert k <= n, "Position tensor must have enough items to select"
+    k = min(k, n)
 
     selected = torch.zeros(n, dtype=torch.bool)
     selected[select] = True

@@ -36,10 +36,9 @@ def neighbour_average_feature(node_pos: torch.Tensor,
     assert node_pos.shape[1] == 3, "Node position tensor must have shape (n_nodes, 3)"
     assert basis_pos.shape[1] == 3, "Basis position tensor must have shape (n_basis, 3)"
     assert basis_pos.shape[0] == basis_x.shape[0], "Basis position and basis feature tensors must have the same number of elements"
-    assert basis_x.shape[0] >= k, "Basis feature tensor must have at least k elements"
     
     dist = torch.cdist(node_pos, basis_pos, p=dist_p)
-    sel_dist, sel_indices = torch.topk(dist, k, largest=False)
+    sel_dist, sel_indices = torch.topk(dist, min(basis_pos.shape[0], k), largest=False)
     
     if weight_p == 0:
         weights = torch.ones_like(sel_dist)

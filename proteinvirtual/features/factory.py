@@ -112,7 +112,7 @@ class VirtualProteinFeaturiser(nn.Module):
                 has_p_nodes = 'p_nodes' in node_config.keys()
                 
                 if has_n_nodes and has_p_nodes:
-                    log.wanring(f"Both n_nodes and p_nodes specified for virtual node {node_name}, p_nodes will be ignored!")
+                    log.warning(f"Both n_nodes and p_nodes specified for virtual node {node_name}, p_nodes will be ignored!")
                 
                 if not has_n_nodes and not has_p_nodes:
                     raise ValueError(f"one of n_node or p_node must be specified for virtual node {node_name}")
