@@ -89,13 +89,13 @@ def compute_fps(num_nodes, basis_pos, basis_batch=None):
             assert num_nodes.shape[0] == bsz, "batch size must match"
         num_real_nodes = torch.bincount(basis_batch)
         num_nodes = torch.minimum(num_nodes, num_real_nodes)
-        num_nodes = list(num_nodes.cpu().numpy())
-        out = torch.empty((sum(num_nodes), 3), dtype=basis_pos.dtype, device=basis_pos.device)
+        num_nodes_list = list(num_nodes.cpu().numpy())
+        out = torch.empty((sum(num_nodes_list), 3), dtype=basis_pos.dtype, device=basis_pos.device)
         ptr = 0  # I love serial programming :)
         for i in range(bsz):
-            out[ptr: ptr+num_nodes[i]] = fps_torch(basis_pos[basis_batch == i], k=num_nodes[i])
-            ptr += num_nodes[i]
-        return out.view(-1, 3)
+            out[ptr: ptr+num_nodes_list[i]] = fps_torch(basis_pos[basis_batch == i], k=num_nodes_list[i])
+            ptr += num_nodes_list[i]
+        return out.view(-1, 3), num_nodes
 
    
 def add_vnode_positions(position, n_nodes, node_name, data: HeteroData):
@@ -146,7 +146,7 @@ def add_vnode_positions_batch(position,
     elif position["type"] == "random_normal":
         new_pos = compute_random_normal(n_nodes, batch[basis].pos, batch[basis].batch)
     elif position["type"] == "fps":
-        new_pos = compute_fps(n_nodes, batch[basis].pos, batch[basis].batch)
+        new_pos, n_nodes = compute_fps(n_nodes, batch[basis].pos, batch[basis].batch)
     else:
         raise NotImplemented(f"Position strategy {position['type']} not implemented")
     
