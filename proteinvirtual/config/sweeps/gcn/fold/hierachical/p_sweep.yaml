@@ -9,7 +9,7 @@ parameters:
     features.virtual_nodes.secondary.p_nodes:
         values: [0.1, 0.5, 1.0]
     features.virtual_nodes.tertiary.n_nodes:
-        values: [8, 32, 64]
+        values: [8, 64]
 command:
  - /home/leenux/.miniconda/envs/gdl/bin/python
  - ${program}
@@ -21,11 +21,11 @@ command:
  - "features=nongeo_hetero_hierarchy_p"
  - "task=multiclass_graph_classification"
  - "dataset=fold_fold"
- - "dataset.datamodule.num_workers=4"
- - "dataset.datamodule.batch_size=32"
+ - "dataset.datamodule.num_workers=8"
+ - "dataset.datamodule.batch_size=40"
  - "trainer=gpu"
  - "scheduler=plateau"
- - "trainer.max_epochs=35"
+ - "trainer.max_epochs=30"
  - "logger=wandb"
  - "++test=True"
  - "optimiser.optimizer.weight_decay=1e-04"
