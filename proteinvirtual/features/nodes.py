@@ -21,7 +21,7 @@ def fps_torch(pos: torch.tensor, k: int = 1, select: int = 0) -> torch.tensor:
     
     n = pos.shape[0]
     assert pos.shape[1] == 3, "Position tensor must be (N, 3)"
-    k = min(k, n)
+    assert k <= n, "Number of samples must be less than or equal to the number of positions"
 
     selected = torch.zeros(n, dtype=torch.bool)
     selected[select] = True
@@ -87,6 +87,8 @@ def compute_fps(num_nodes, basis_pos, basis_batch=None):
         else:
             assert isinstance(num_nodes, torch.Tensor), "num_nodes must either be an int or torch.Tensor"
             assert num_nodes.shape[0] == bsz, "batch size must match"
+        num_real_nodes = torch.bincount(basis_batch)
+        num_nodes = torch.minimum(num_nodes, num_real_nodes)
         num_nodes = list(num_nodes.cpu().numpy())
         out = torch.empty((sum(num_nodes), 3), dtype=basis_pos.dtype, device=basis_pos.device)
         ptr = 0  # I love serial programming :)
